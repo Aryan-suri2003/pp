@@ -11,16 +11,16 @@ stages {
         }
     }
 
-    stage('Build Docker Images') {
+    stage('Build') {
         steps {
-            sh 'docker compose build'
+            bat 'docker compose build'
         }
     }
 
     stage('Deploy') {
         steps {
-            sh '''
-            docker compose down || true
+            bat '''
+            docker compose down
             docker compose up -d
             '''
         }
@@ -28,7 +28,7 @@ stages {
 
     stage('Verify') {
         steps {
-            sh 'docker ps'
+            bat 'docker ps'
         }
     }
 }
