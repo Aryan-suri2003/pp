@@ -1,5 +1,4 @@
 
-cd "c:\Users\surij\Downloads\Pipeline--main"
 
 
 cat > Jenkinsfile <<'EOF'
