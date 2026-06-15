@@ -10,11 +10,6 @@ pipeline {
         GITHUB_PAT = credentials('github-pat')
     }
 
-    options {
-        ansiColor('xterm')
-        timestamps()
-        buildDiscarder(logRotator(numToKeepStr: '20'))
-    }
 
     stages {
         stage('Checkout') {
