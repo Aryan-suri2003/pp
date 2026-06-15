@@ -11,11 +11,14 @@ stages {
         }
     }
 
-    stage('Build') {
-        steps {
-            bat 'docker compose build'
-        }
+  stage('Build') {
+    steps {
+        bat '''
+        dir
+        docker compose -f docker-compose.yml build
+        '''
     }
+}
 
     stage('Deploy') {
         steps {
