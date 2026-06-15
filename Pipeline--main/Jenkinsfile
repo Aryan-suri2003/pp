@@ -1,170 +1,47 @@
-/* --------------------------------------------------------------
- * Jenkinsfile – Docker‑Compose pipeline for the “Pipeline‑main”
- * project (https://github.com/Aryan-suri2003/pp.git)
- *
- * Prerequisites on the Jenkins agent:
- *   • Docker Engine (>=20.10) + Docker Compose v2 (`docker compose`)
- *   • “Docker Pipeline” plugin (for `docker.withServer`) – optional,
- *     but it gives nicer console output.
- *   • A credential that holds a GitHub Personal‑Access‑Token (PAT)
- *     with *repo* scope – used only if you want the pipeline to
- *     push commits back to GitHub.
- * ----------------------------------------------------------- */
-
 pipeline {
-    agent any                     // runs on any available agent (adjust if you have a Docker‑enabled label)
+agent any
 
-    // -----------------------------------------------------------------
-    // Global environment – adjust the names to match the credentials you
-    // create in Jenkins (Credentials → “Secret text” or “Username + Password”).
-    // -----------------------------------------------------------------
-    environment {
-        // GitHub PAT – stored as a *Secret text* credential named “github-pat”
-        GITHUB_PAT = credentials('github-pat')
-        // If you prefer SSH, create an “SSH Username with private key” credential
-        // and expose it as GIT_SSH_KEY = credentials('github-ssh')
+```
+stages {
+
+    stage('Checkout') {
+        steps {
+            git branch: 'main',
+                url: 'https://github.com/Aryan-suri2003/pp.git'
+        }
     }
 
-    options {
-        // Keep the console output tidy
-        ansiColor('xterm')
-        // Discard old builds automatically
-        buildDiscarder(logRotator(numToKeepStr: '20'))
-        timestamps()
-        // Bail out if any step fails
-        skipStagesAfterUnstable()
+    stage('Build Docker Images') {
+        steps {
+            sh 'docker compose build'
+        }
     }
 
-    stages {
-
-        // -------------------------------------------------------------
-        // 1️⃣ Checkout source from GitHub
-        // -------------------------------------------------------------
-        stage('Checkout') {
-            steps {
-                // Using the HTTPS URL with the PAT embedded – avoids interactive auth
-                git url: "https://${GITHUB_PAT}@github.com/Aryan-suri2003/pp.git",
-                    branch: 'master',
-                    credentialsId: ''   // PAT already embedded, no extra cred needed
-            }
-        }
-
-        // -------------------------------------------------------------
-        // 2️⃣ Build Docker images (docker‑compose build)
-        // -------------------------------------------------------------
-        stage('Build Images') {
-            steps {
-                // Show Docker version for debugging
-                sh 'docker version'
-                // Build (pull latest base images first)
-                sh '''
-                    echo "🔧 Building Docker images …"
-                    docker compose build --pull
-                '''
-            }
-        }
-
-        // -------------------------------------------------------------
-        // 3️⃣ Bring the stack up (docker‑compose up -d)
-        // -------------------------------------------------------------
-        stage('Start Stack') {
-            steps {
-                sh '''
-                    echo "🚀 Starting Docker Compose stack …"
-                    docker compose up -d
-                '''
-            }
-        }
-
-        // -------------------------------------------------------------
-        // 4️⃣ Simple health‑check – wait until containers are healthy / running
-        // -------------------------------------------------------------
-        stage('Health Check') {
-            steps {
-                script {
-                    // Wait up to 60 seconds, checking every 5 seconds
-                    def maxWait = 60
-                    def waited = 0
-                    while (waited < maxWait) {
-                        // List running containers; if every service defined in compose is up, break
-                        def running = sh(script: "docker compose ps --services --filter 'status=running' | wc -l",
-                                         returnStdout: true).trim()
-                        def defined = sh(script: "docker compose config --services | wc -l",
-                                         returnStdout: true).trim()
-                        if (running == defined) {
-                            echo "✅ All ${defined} services are up."
-                            break
-                        }
-                        echo "⏳ Waiting for services… (${waited}s elapsed)"
-                        sleep time: 5, unit: 'SECONDS'
-                        waited += 5
-                    }
-                    if (waited >= maxWait) {
-                        error "❌ Not all services became healthy after ${maxWait}s"
-                    }
-                }
-            }
-        }
-
-        // -------------------------------------------------------------
-        // 5️⃣ (Optional) Run a quick sanity test – e.g. curl the frontend
-        // -------------------------------------------------------------
-        stage('Sanity Test') {
-            steps {
-                // Adjust the port if your compose file exposes a different one
-                script {
-                    // Try to hit the frontend on port 3000 (default for many Node/Next apps)
-                    def frontendPort = sh(script: "docker compose port frontend 3000 | cut -d: -f2",
-                                          returnStdout: true).trim()
-                    if (frontendPort) {
-                        sh """
-                            echo "🔍 Testing http://localhost:${frontendPort}"
-                            curl --max-time 10 -f http://localhost:${frontendPort} || exit 1
-                        """
-                    } else {
-                        echo "⚠️ Frontend service or port not found – skipping curl test."
-                    }
-                }
-            }
-        }
-
-        // -------------------------------------------------------------
-        // 6️⃣ (Optional) Push a new commit back to GitHub
-        // -------------------------------------------------------------
-        stage('Push changes (optional)') {
-            when {
-                // Only run if there are local changes (e.g. version bump, generated files)
-                expression { return fileExists('some-generated-file.txt') }   // replace with real condition
-            }
-            steps {
-                sh '''
-                    echo "📤 Pushing generated changes back to GitHub …"
-                    git config user.email "ci@yourdomain.com"
-                    git config user.name "Jenkins CI"
-                    git add .
-                    git commit -m "CI: update generated artifacts [skip ci]"
-                    git push origin HEAD:master
-                '''
-            }
-        }
-
-    }   // end stages
-
-    // -------------------------------------------------------------
-    // 7️⃣ Cleanup – bring the docker‑compose stack down
-    // -------------------------------------------------------------
-    post {
-        always {
-            echo "🧹 Cleaning up Docker Compose stack ..."
+    stage('Deploy') {
+        steps {
             sh '''
-                docker compose down --remove-orphans --volumes || true
+            docker compose down || true
+            docker compose up -d
             '''
         }
-        success {
-            echo "✅ Pipeline finished successfully."
-        }
-        failure {
-            echo "❌ Pipeline failed."
+    }
+
+    stage('Verify') {
+        steps {
+            sh 'docker ps'
         }
     }
+}
+
+post {
+    success {
+        echo 'Deployment Successful'
+    }
+
+    failure {
+        echo 'Deployment Failed'
+    }
+}
+```
+
 }
