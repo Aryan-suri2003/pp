@@ -1,7 +1,7 @@
-# Go to the project root (if you are not already there)
+
 cd "c:\Users\surij\Downloads\Pipeline--main"
 
-# Create the file – you can use any editor, but here we use a heredoc for simplicity
+
 cat > Jenkinsfile <<'EOF'
 pipeline {
     agent any
