@@ -25,7 +25,7 @@ export default function Home(){
 
  return (
   <div style={{padding:20}}>
-   <h1> Aryan Students</h1>
+   <h1> Aryan Students Akan</h1>
    <input placeholder="Name" value={name} onChange={e=>setName(e.target.value)}/>
    <input placeholder="Roll Number" value={rollNumber} onChange={e=>setRoll(e.target.value)}/>
    <button onClick={save}>Save</button>
