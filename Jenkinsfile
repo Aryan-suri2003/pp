@@ -6,7 +6,7 @@ stages {
 
     stage('Checkout') {
         steps {
-            git branch: 'main',
+            git branch: 'master',
                 url: 'https://github.com/Aryan-suri2003/pp.git'
         }
     }
