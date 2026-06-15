@@ -11,21 +11,22 @@ stages {
         }
     }
 
-  stage('Build') {
-    steps {
-        bat '''
-        dir
-        docker compose -f docker-compose.yml build
-        '''
+    stage('Build') {
+        steps {
+            dir('Pipeline--main') {
+                bat 'docker compose build'
+            }
+        }
     }
-}
 
     stage('Deploy') {
         steps {
-            bat '''
-            docker compose down
-            docker compose up -d
-            '''
+            dir('Pipeline--main') {
+                bat '''
+                docker compose down
+                docker compose up -d
+                '''
+            }
         }
     }
 
